@@ -1,14 +1,21 @@
 {
-  "series": [
-    {
-      "nomSerie": "Les Tuniques Bleues",
-      "albums": [
+    "series": [
         {
-          "titre": "Numéro 1 - Un chariot dans l'Ouest",
-          "pochette": "https://www.bedetheque.com/cache/thb_couv/Couv_28766.jpg",
-          "resume": "Premier album de la série, introduction des sergents Cornelius M. Chesterfield et Blutch."
+            "nomSerie": "Les Tuniques Bleues",
+            "albums": [
+                {
+                    "titre": "Numéro 1 - Un chariot dans l'Ouest",
+                    "pochette": "https://www.bedetheque.com/cache/thb_couv/Couv_28766.jpg",
+                    "resume": "Premier album de la série, introduction des sergents Cornelius M. Chesterfield et Blutch."
+                }
+            ],
+            "pochette": "https://www.bedetheque.com/cache/thb_couv/Couv_28766.jpg",
+            "resumeSerie": "Un sergent bête et en quête de gloire, un acolyte un peu plus malin, mais lâche, se trouve entraînés dans la guerre de sécession, au sein de la cavalerie ! Drôle, et plutôt destiné à la jeunesse."
+        },
+        {
+            "nomSerie": "Asterix",
+            "pochette": "https://www.bedetheque.com/cache/thb_couv/Couv_22940.jpg",
+            "resumeSerie": "Cette série regroupe l'ensemble des albums parus dans l'édition principale. Voir aussi les séries annexes à celle-ci, pour l'édition Hachette, les albums hors-série, les mini-albums Elf, les albums publicitaires ou les albums inclassables."
         }
-      ]
-    }
-  ]
+    ]
 }
