@@ -8,11 +8,14 @@
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         h1 { text-align: center; }
         .search-container, .admin-container { text-align: center; margin-bottom: 25px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin-left: auto; margin-right: auto; }
-        input { padding: 8px; width: 250px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin: 5px; }
+        input, textarea { padding: 8px; width: 250px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin: 5px; display: block; margin-left: auto; margin-right: auto; }
+        textarea { height: 60px; resize: vertical; }
         button { padding: 8px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 4px; background-color: #007bff; color: white; margin: 5px; }
         button#reset-btn { background-color: #6c757d; }
         button.delete-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; }
+        button.edit-btn { background-color: #ffc107; color: black; padding: 4px 8px; font-size: 12px; float: right; margin-right: 5px; }
         .serie-container { margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .serie-resume { font-style: italic; color: #555; margin-bottom: 15px; font-size: 14px; }
         .albums-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
         .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; }
         .album-card img { width: 100%; height: 250px; object-fit: cover; border-radius: 3px; }
@@ -33,6 +36,7 @@
     <div class="admin-container">
         <h3>Gestion des Séries</h3>
         <input type="text" id="new-serie-input" placeholder="Nom de la nouvelle série">
+        <textarea id="new-resume-input" placeholder="Résumé de la série"></textarea>
         <button id="add-serie-btn">Ajouter la série</button>
     </div>
 
@@ -50,7 +54,7 @@
                 return;
             }
 
-            data.series.forEach((serie, index) => {
+            data.series.forEach((serie) => {
                 let serieDiv = document.createElement('div');
                 serieDiv.className = 'serie-container';
                 
@@ -59,11 +63,24 @@
 
                 let deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Supprimer la série';
+                deleteBtn.textContent = 'Supprimer';
                 deleteBtn.onclick = () => deleteSerie(serie.nomSerie);
+
+                let editBtn = document.createElement('button');
+                editBtn.className = 'edit-btn';
+                editBtn.textContent = 'Modifier résumé';
+                editBtn.onclick = () => editSerieResume(serie.nomSerie);
                 
                 serieTitle.appendChild(deleteBtn);
+                serieTitle.appendChild(editBtn);
                 serieDiv.appendChild(serieTitle);
+
+                if (serie.resumeSerie) {
+                    let resumeP = document.createElement('p');
+                    resumeP.className = 'serie-resume';
+                    resumeP.textContent = serie.resumeSerie;
+                    serieDiv.appendChild(resumeP);
+                }
 
                 let albumsGrid = document.createElement('div');
                 albumsGrid.className = 'albums-grid';
@@ -91,7 +108,19 @@
 
         function deleteSerie(nomSerie) {
             if (confirm(`Voulez-vous vraiment supprimer la série "${nomSerie}" ?`)) {
-                globalData.series = globalData.series.indexBy ? globalData.series : globalData.series.filter(s => s.nomSerie !== nomSerie);
+                globalData.series = globalData.series.filter(s => s.nomSerie !== nomSerie);
+                displayCollection(globalData);
+            }
+        }
+
+        function editSerieResume(nomSerie) {
+            const serie = globalData.series.find(s => s.nomSerie === nomSerie);
+            if (!serie) return;
+
+            const nouveauResume = prompt(`Modifier le résumé de la série "${nomSerie}" :`, serie.resumeSerie || '');
+            if (nouveauResume !== null) {
+                serie.resumeResume = undefined; // Nettoyage ancienne propriété potentielle
+                serie.resumeSerie = nouveauResume.trim();
                 displayCollection(globalData);
             }
         }
@@ -117,7 +146,7 @@
             }
 
             const filteredSeries = globalData.series.map(serie => {
-                const matchSerie = serie.nomSerie.toLowerCase().includes(query);
+                const matchSerie = serie.nomSerie.toLowerCase().includes(query) || (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
                 const filteredAlbums = serie.albums ? serie.albums.filter(album => 
                     album.titre.toLowerCase().includes(query) || 
                     album.resume.toLowerCase().includes(query)
@@ -140,8 +169,10 @@
         });
 
         document.getElementById('add-serie-btn').addEventListener('click', () => {
-            const input = document.getElementById('new-serie-input');
-            const nomSerie = input.value.trim();
+            const inputNom = document.getElementById('new-serie-input');
+            const inputResume = document.getElementById('new-resume-input');
+            const nomSerie = inputNom.value.trim();
+            const resumeSerie = inputResume.value.trim();
 
             if (!nomSerie) {
                 alert("Veuillez entrer un nom de série.");
@@ -156,10 +187,12 @@
 
             globalData.series.push({
                 nomSerie: nomSerie,
+                resumeSerie: resumeSerie,
                 albums: []
             });
 
-            input.value = '';
+            inputNom.value = '';
+            inputResume.value = '';
             displayCollection(globalData);
         });
     </script>
