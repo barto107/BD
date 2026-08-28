@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
         h1 { text-align: center; }
         .search-container, .admin-container { text-align: center; margin-bottom: 25px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin-left: auto; margin-right: auto; }
-        input, textarea { padding: 8px; width: 250px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin: 5px; display: block; margin-left: auto; margin-right: auto; }
+        input, textarea, select { padding: 8px; width: 250px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin: 5px; display: block; margin-left: auto; margin-right: auto; }
         textarea { height: 60px; resize: vertical; }
         button { padding: 8px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 4px; background-color: #007bff; color: white; margin: 5px; }
         button#reset-btn { background-color: #6c757d; }
@@ -36,12 +36,34 @@
         <h3>Gestion des Séries</h3>
         <input type="text" id="new-serie-input" placeholder="Nom de la nouvelle série">
         <button id="add-serie-btn">Ajouter la série</button>
+
+        <h3 style="margin-top: 20px;">Ajouter un Album</h3>
+        <select id="select-serie-album">
+            <option value="">Sélectionner une série</option>
+        </select>
+        <input type="text" id="new-album-titre" placeholder="Titre de l'album">
+        <input type="text" id="new-album-pochette" placeholder="URL de la pochette">
+        <textarea id="new-album-resume" placeholder="Résumé de l'album"></textarea>
+        <button id="add-album-btn">Ajouter l'album</button>
     </div>
 
     <div id="collection-container">Chargement de la collection...</div>
 
     <script>
         let globalData = null;
+
+        function updateSeriesSelect() {
+            const select = document.getElementById('select-serie-album');
+            select.innerHTML = '<option value="">Sélectionner une série</option>';
+            if (!globalData || !globalData.series) return;
+
+            globalData.series.forEach(serie => {
+                let option = document.createElement('option');
+                option.value = serie.nomSerie;
+                option.textContent = serie.nomSerie;
+                select.appendChild(option);
+            });
+        }
 
         function displayCollection(data) {
             const container = document.getElementById('collection-container');
@@ -84,8 +106,8 @@
                         `;
 
                         let editAlbumBtn = document.createElement('button');
-                        editAlbumBtn.textContent = 'Modifier résumé';
-                        editAlbumBtn.onclick = () => editAlbumResume(serie.nomSerie, albumIndex);
+                        editAlbumBtn.textContent = 'Modifier album';
+                        editAlbumBtn.onclick = () => editAlbum(serie.nomSerie, albumIndex);
                         albumCard.appendChild(editAlbumBtn);
 
                         albumsGrid.appendChild(albumCard);
@@ -97,6 +119,7 @@
                 serieDiv.appendChild(albumsGrid);
                 container.appendChild(serieDiv);
             });
+            updateSeriesSelect();
         }
 
         function deleteSerie(nomSerie) {
@@ -106,17 +129,24 @@
             }
         }
 
-        function editAlbumResume(nomSerie, albumIndex) {
+        function editAlbum(nomSerie, albumIndex) {
             const serie = globalData.series.find(s => s.nomSerie === nomSerie);
             if (!serie || !serie.albums[albumIndex]) return;
 
             const album = serie.albums[albumIndex];
-            const nouveauResume = prompt(`Modifier le résumé de l'album "${album.titre}" :`, album.resume);
-            
-            if (nouveauResume !== null) {
-                album.resume = nouveauResume.trim();
-                displayCollection(globalData);
-            }
+            const nouveauTitre = prompt(`Modifier le titre de l'album :`, album.titre);
+            if (nouveauTitre === null) return;
+
+            const nouvellePochette = prompt(`Modifier l'URL de la pochette :`, album.pochette);
+            if (nouvellePochette === null) return;
+
+            const nouveauResume = prompt(`Modifier le résumé de l'album :`, album.resume);
+            if (nouveauResume === null) return;
+
+            album.titre = nouveauTitre.trim();
+            album.pochette = nouvellePochette.trim();
+            album.resume = nouveauResume.trim();
+            displayCollection(globalData);
         }
 
         fetch('collection.json')
@@ -184,6 +214,33 @@
 
             input.value = '';
             displayCollection(globalData);
+        });
+
+        document.getElementById('add-album-btn').addEventListener('click', () => {
+            const serieName = document.getElementById('select-serie-album').value;
+            const titre = document.getElementById('new-album-titre').value.trim();
+            const pochette = document.getElementById('new-album-pochette').value.trim();
+            const resume = document.getElementById('new-album-resume').value.trim();
+
+            if (!serieName) {
+                alert("Veuillez sélectionner une série.");
+                return;
+            }
+            if (!titre || !pochette) {
+                alert("Veuillez renseigner au moins le titre et l'URL de la pochette.");
+                return;
+            }
+
+            const serie = globalData.series.find(s => s.nomSerie === serieName);
+            if (serie) {
+                if (!serie.albums) serie.albums = [];
+                serie.albums.push({ titre, pochette, resume });
+
+                document.getElementById('new-album-titre').value = '';
+                document.getElementById('new-album-pochette').value = '';
+                document.getElementById('new-album-resume').value = '';
+                displayCollection(globalData);
+            }
         });
     </script>
 
