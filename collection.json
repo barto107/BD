@@ -1,0 +1,14 @@
+{
+  "series": [
+    {
+      "nomSerie": "Les Tuniques Bleues",
+      "albums": [
+        {
+          "titre": "Numéro 1 - Un chariot dans l'Ouest",
+          "pochette": "https://example.com/images/tuniques_bleues_1.jpg",
+          "resume": "Premier album de la série, introduction des sergents Cornelius M. Chesterfield et Blutch."
+        }
+      ]
+    }
+  ]
+}

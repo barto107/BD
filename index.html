@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Collection de BD</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1 { text-align: center; }
+        .search-container, .admin-container { text-align: center; margin-bottom: 25px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px; margin-left: auto; margin-right: auto; }
+        input { padding: 8px; width: 250px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin: 5px; }
+        button { padding: 8px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 4px; background-color: #007bff; color: white; margin: 5px; }
+        button#reset-btn { background-color: #6c757d; }
+        button.delete-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; }
+        .serie-container { margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .albums-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
+        .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; }
+        .album-card img { width: 100%; height: 250px; object-fit: cover; border-radius: 3px; }
+        .album-card h3 { font-size: 14px; margin: 8px 0 4px 0; }
+        .album-card p { font-size: 12px; color: #666; height: 60px; overflow: hidden; }
+    </style>
+</head>
+<body>
+
+    <h1>Ma Collection de Bandes Dessinées</h1>
+
+    <div class="search-container">
+        <input type="text" id="search-input" placeholder="Rechercher une série, un album...">
+        <button id="search-btn">Rechercher</button>
+        <button id="reset-btn">Réinitialiser</button>
+    </div>
+
+    <div class="admin-container">
+        <h3>Gestion des Séries</h3>
+        <input type="text" id="new-serie-input" placeholder="Nom de la nouvelle série">
+        <button id="add-serie-btn">Ajouter la série</button>
+    </div>
+
+    <div id="collection-container">Chargement de la collection...</div>
+
+    <script>
+        let globalData = null;
+
+        function displayCollection(data) {
+            const container = document.getElementById('collection-container');
+            container.innerHTML = '';
+
+            if (!data.series || data.series.length === 0) {
+                container.innerHTML = '<p style="text-align:center;">Aucune bande dessinée trouvée.</p>';
+                return;
+            }
+
+            data.series.forEach((serie, index) => {
+                let serieDiv = document.createElement('div');
+                serieDiv.className = 'serie-container';
+                
+                let serieTitle = document.createElement('h2');
+                serieTitle.textContent = serie.nomSerie;
+
+                let deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = 'Supprimer la série';
+                deleteBtn.onclick = () => deleteSerie(serie.nomSerie);
+                
+                serieTitle.appendChild(deleteBtn);
+                serieDiv.appendChild(serieTitle);
+
+                let albumsGrid = document.createElement('div');
+                albumsGrid.className = 'albums-grid';
+
+                if (serie.albums && serie.albums.length > 0) {
+                    serie.albums.forEach(album => {
+                        let albumCard = document.createElement('div');
+                        albumCard.className = 'album-card';
+                        
+                        albumCard.innerHTML = `
+                            <img src="${album.pochette}" alt="${album.titre}">
+                            <h3>${album.titre}</h3>
+                            <p>${album.resume}</p>
+                        `;
+                        albumsGrid.appendChild(albumCard);
+                    });
+                } else {
+                    albumsGrid.innerHTML = '<p style="color: #888; font-style: italic;">Aucun album pour cette série.</p>';
+                }
+
+                serieDiv.appendChild(albumsGrid);
+                container.appendChild(serieDiv);
+            });
+        }
+
+        function deleteSerie(nomSerie) {
+            if (confirm(`Voulez-vous vraiment supprimer la série "${nomSerie}" ?`)) {
+                globalData.series = globalData.series.indexBy ? globalData.series : globalData.series.filter(s => s.nomSerie !== nomSerie);
+                displayCollection(globalData);
+            }
+        }
+
+        fetch('collection.json')
+            .then(response => response.json())
+            .then(data => {
+                globalData = data;
+                displayCollection(globalData);
+            })
+            .catch(error => {
+                document.getElementById('collection-container').textContent = "Erreur lors du chargement des données.";
+                console.error(error);
+            });
+
+        document.getElementById('search-btn').addEventListener('click', () => {
+            if (!globalData) return;
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (!query) {
+                displayCollection(globalData);
+                return;
+            }
+
+            const filteredSeries = globalData.series.map(serie => {
+                const matchSerie = serie.nomSerie.toLowerCase().includes(query);
+                const filteredAlbums = serie.albums ? serie.albums.filter(album => 
+                    album.titre.toLowerCase().includes(query) || 
+                    album.resume.toLowerCase().includes(query)
+                ) : [];
+
+                if (matchSerie) {
+                    return serie;
+                } else if (filteredAlbums.length > 0) {
+                    return { ...serie, albums: filteredAlbums };
+                }
+                return null;
+            }).filter(serie => serie !== null);
+
+            displayCollection({ series: filteredSeries });
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            document.getElementById('search-input').value = '';
+            displayCollection(globalData);
+        });
+
+        document.getElementById('add-serie-btn').addEventListener('click', () => {
+            const input = document.getElementById('new-serie-input');
+            const nomSerie = input.value.trim();
+
+            if (!nomSerie) {
+                alert("Veuillez entrer un nom de série.");
+                return;
+            }
+
+            const exists = globalData.series.some(s => s.nomSerie.toLowerCase() === nomSerie.toLowerCase());
+            if (exists) {
+                alert("Cette série existe déjà.");
+                return;
+            }
+
+            globalData.series.push({
+                nomSerie: nomSerie,
+                albums: []
+            });
+
+            input.value = '';
+            displayCollection(globalData);
+        });
+    </script>
+
+</body>
+</html>
