@@ -12,15 +12,14 @@
         textarea { height: 60px; resize: vertical; }
         button { padding: 8px 15px; font-size: 14px; cursor: pointer; border: none; border-radius: 4px; background-color: #007bff; color: white; margin: 5px; }
         button#reset-btn { background-color: #6c757d; }
-        button.delete-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; }
-        button.edit-btn { background-color: #ffc107; color: black; padding: 4px 8px; font-size: 12px; float: right; margin-right: 5px; }
+        button.delete-serie-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; }
         .serie-container { margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .serie-resume { font-style: italic; color: #555; margin-bottom: 15px; font-size: 14px; }
         .albums-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
-        .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; }
-        .album-card img { width: 100%; height: 250px; object-fit: cover; border-radius: 3px; }
-        .album-card h3 { font-size: 14px; margin: 8px 0 4px 0; }
-        .album-card p { font-size: 12px; color: #666; height: 60px; overflow: hidden; }
+        .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; display: flex; flex-direction: column; justify-content: space-between; }
+        .album-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 3px; }
+        .album-card h3 { font-size: 13px; margin: 8px 0 4px 0; }
+        .album-card p { font-size: 11px; color: #666; margin-bottom: 8px; flex-grow: 1; }
+        .album-card button { background-color: #ffc107; color: black; font-size: 11px; padding: 4px; width: 100%; margin: 2px 0 0 0; }
     </style>
 </head>
 <body>
@@ -36,7 +35,6 @@
     <div class="admin-container">
         <h3>Gestion des Séries</h3>
         <input type="text" id="new-serie-input" placeholder="Nom de la nouvelle série">
-        <textarea id="new-resume-input" placeholder="Résumé de la série"></textarea>
         <button id="add-serie-btn">Ajouter la série</button>
     </div>
 
@@ -62,39 +60,34 @@
                 serieTitle.textContent = serie.nomSerie;
 
                 let deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.textContent = 'Supprimer';
+                deleteBtn.className = 'delete-serie-btn';
+                deleteBtn.textContent = 'Supprimer la série';
                 deleteBtn.onclick = () => deleteSerie(serie.nomSerie);
-
-                let editBtn = document.createElement('button');
-                editBtn.className = 'edit-btn';
-                editBtn.textContent = 'Modifier résumé';
-                editBtn.onclick = () => editSerieResume(serie.nomSerie);
                 
                 serieTitle.appendChild(deleteBtn);
-                serieTitle.appendChild(editBtn);
                 serieDiv.appendChild(serieTitle);
-
-                if (serie.resumeSerie) {
-                    let resumeP = document.createElement('p');
-                    resumeP.className = 'serie-resume';
-                    resumeP.textContent = serie.resumeSerie;
-                    serieDiv.appendChild(resumeP);
-                }
 
                 let albumsGrid = document.createElement('div');
                 albumsGrid.className = 'albums-grid';
 
                 if (serie.albums && serie.albums.length > 0) {
-                    serie.albums.forEach(album => {
+                    serie.albums.forEach((album, albumIndex) => {
                         let albumCard = document.createElement('div');
                         albumCard.className = 'album-card';
                         
                         albumCard.innerHTML = `
-                            <img src="${album.pochette}" alt="${album.titre}">
-                            <h3>${album.titre}</h3>
-                            <p>${album.resume}</p>
+                            <div>
+                                <img src="${album.pochette}" alt="${album.titre}">
+                                <h3>${album.titre}</h3>
+                                <p>${album.resume}</p>
+                            </div>
                         `;
+
+                        let editAlbumBtn = document.createElement('button');
+                        editAlbumBtn.textContent = 'Modifier résumé';
+                        editAlbumBtn.onclick = () => editAlbumResume(serie.nomSerie, albumIndex);
+                        albumCard.appendChild(editAlbumBtn);
+
                         albumsGrid.appendChild(albumCard);
                     });
                 } else {
@@ -113,14 +106,15 @@
             }
         }
 
-        function editSerieResume(nomSerie) {
+        function editAlbumResume(nomSerie, albumIndex) {
             const serie = globalData.series.find(s => s.nomSerie === nomSerie);
-            if (!serie) return;
+            if (!serie || !serie.albums[albumIndex]) return;
 
-            const nouveauResume = prompt(`Modifier le résumé de la série "${nomSerie}" :`, serie.resumeSerie || '');
+            const album = serie.albums[albumIndex];
+            const nouveauResume = prompt(`Modifier le résumé de l'album "${album.titre}" :`, album.resume);
+            
             if (nouveauResume !== null) {
-                serie.resumeResume = undefined; // Nettoyage ancienne propriété potentielle
-                serie.resumeSerie = nouveauResume.trim();
+                album.resume = nouveauResume.trim();
                 displayCollection(globalData);
             }
         }
@@ -146,7 +140,7 @@
             }
 
             const filteredSeries = globalData.series.map(serie => {
-                const matchSerie = serie.nomSerie.toLowerCase().includes(query) || (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
+                const matchSerie = serie.nomSerie.toLowerCase().includes(query);
                 const filteredAlbums = serie.albums ? serie.albums.filter(album => 
                     album.titre.toLowerCase().includes(query) || 
                     album.resume.toLowerCase().includes(query)
@@ -169,10 +163,8 @@
         });
 
         document.getElementById('add-serie-btn').addEventListener('click', () => {
-            const inputNom = document.getElementById('new-serie-input');
-            const inputResume = document.getElementById('new-resume-input');
-            const nomSerie = inputNom.value.trim();
-            const resumeSerie = inputResume.value.trim();
+            const input = document.getElementById('new-serie-input');
+            const nomSerie = input.value.trim();
 
             if (!nomSerie) {
                 alert("Veuillez entrer un nom de série.");
@@ -187,12 +179,10 @@
 
             globalData.series.push({
                 nomSerie: nomSerie,
-                resumeSerie: resumeSerie,
                 albums: []
             });
 
-            inputNom.value = '';
-            inputResume.value = '';
+            input.value = '';
             displayCollection(globalData);
         });
     </script>
