@@ -59,7 +59,6 @@
                 return;
             }
 
-            // Tri alphabétique avant l'affichage
             sortSeries(data.series);
 
             data.series.forEach((serie) => {
@@ -105,10 +104,27 @@
             });
         }
 
+        function performSearch() {
+            if (!globalData) return;
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (!query) {
+                displayCollection(globalData);
+                return;
+            }
+
+            const filteredSeries = globalData.series.filter(serie => {
+                return serie.nomSerie.toLowerCase().includes(query) || 
+                       (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
+            });
+
+            displayCollection({ series: filteredSeries });
+        }
+
         function deleteSerie(nomSerie) {
             if (confirm(`Voulez-vous vraiment supprimer la série "${nomSerie}" ?`)) {
                 globalData.series = globalData.series.filter(s => s.nomSerie !== nomSerie);
-                displayCollection(globalData);
+                performSearch(); // Met à jour l'affichage en conservant le filtre actif si besoin
             }
         }
 
@@ -130,7 +146,7 @@
             }
             serie.pochette = nouvellePochette.trim();
             serie.resumeSerie = nouveauResume.trim();
-            displayCollection(globalData);
+            performSearch();
         }
 
         fetch('collection.json')
@@ -144,22 +160,11 @@
                 console.error(error);
             });
 
-        document.getElementById('search-btn').addEventListener('click', () => {
-            if (!globalData) return;
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
-            
-            if (!query) {
-                displayCollection(globalData);
-                return;
-            }
-
-            const filteredSeries = globalData.series.map(serie => {
-                const matchSerie = serie.nomSerie.toLowerCase().includes(query) || (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
-                return matchSerie ? serie : null;
-            }).filter(serie => serie !== null);
-
-            displayCollection({ series: filteredSeries });
-        });
+        // Déclenche la recherche en temps réel dès qu'on tape du texte
+        document.getElementById('search-input').addEventListener('input', performSearch);
+        
+        // Garde aussi l'écoute sur le bouton au cas où
+        document.getElementById('search-btn').addEventListener('click', performSearch);
 
         document.getElementById('reset-btn').addEventListener('click', () => {
             document.getElementById('search-input').value = '';
@@ -195,7 +200,7 @@
             inputNom.value = '';
             inputPochette.value = '';
             inputResume.value = '';
-            displayCollection(globalData);
+            performSearch();
         });
 
         document.getElementById('export-btn').addEventListener('click', () => {
