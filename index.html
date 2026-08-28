@@ -14,6 +14,7 @@
         button.delete-serie-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; margin-left: 5px; }
         button.edit-serie-btn { background-color: #ffc107; color: black; padding: 4px 8px; font-size: 12px; float: right; }
         .serie-container { margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .serie-resume { font-style: italic; color: #555; margin-bottom: 15px; font-size: 14px; }
         .albums-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
         .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; }
         .album-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 3px; }
@@ -72,6 +73,13 @@
                 serieTitle.appendChild(editBtn);
                 serieDiv.appendChild(serieTitle);
 
+                if (serie.resumeSerie) {
+                    let resumeP = document.createElement('p');
+                    resumeP.className = 'serie-resume';
+                    resumeP.textContent = serie.resumeSerie;
+                    serieDiv.appendChild(resumeP);
+                }
+
                 let albumsGrid = document.createElement('div');
                 albumsGrid.className = 'albums-grid';
 
@@ -108,10 +116,16 @@
             if (!serie) return;
 
             const nouveauNom = prompt(`Modifier le nom de la série :`, serie.nomSerie);
-            if (nouveauNom !== null && nouveauNom.trim() !== '') {
+            if (nouveauNom === null) return;
+
+            const nouveauResume = prompt(`Modifier le résumé de la série :`, serie.resumeSerie || '');
+            if (nouveauResume === null) return;
+
+            if (nouveauNom.trim() !== '') {
                 serie.nomSerie = nouveauNom.trim();
-                displayCollection(globalData);
             }
+            serie.resumeSerie = nouveauResume.trim();
+            displayCollection(globalData);
         }
 
         fetch('collection.json')
@@ -135,7 +149,7 @@
             }
 
             const filteredSeries = globalData.series.map(serie => {
-                const matchSerie = serie.nomSerie.toLowerCase().includes(query);
+                const matchSerie = serie.nomSerie.toLowerCase().includes(query) || (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
                 const filteredAlbums = serie.albums ? serie.albums.filter(album => 
                     album.titre.toLowerCase().includes(query) || 
                     album.resume.toLowerCase().includes(query)
@@ -174,6 +188,7 @@
 
             globalData.series.push({
                 nomSerie: nomSerie,
+                resumeSerie: "",
                 albums: []
             });
 
