@@ -46,6 +46,10 @@
     <script>
         let globalData = null;
 
+        function sortSeries(series) {
+            return series.sort((a, b) => a.nomSerie.localeCompare(b.nomSerie, 'fr', { sensitivity: 'base' }));
+        }
+
         function displayCollection(data) {
             const container = document.getElementById('collection-container');
             container.innerHTML = '';
@@ -54,6 +58,9 @@
                 container.innerHTML = '<p style="text-align:center;">Aucune bande dessinée trouvée.</p>';
                 return;
             }
+
+            // Tri alphabétique avant l'affichage
+            sortSeries(data.series);
 
             data.series.forEach((serie) => {
                 let serieDiv = document.createElement('div');
