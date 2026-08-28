@@ -15,12 +15,10 @@
         button.delete-serie-btn { background-color: #dc3545; padding: 4px 8px; font-size: 12px; float: right; margin-left: 5px; }
         button.edit-serie-btn { background-color: #ffc107; color: black; padding: 4px 8px; font-size: 12px; float: right; }
         .serie-container { margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .serie-resume { font-style: italic; color: #555; margin-bottom: 15px; font-size: 14px; }
-        .albums-grid { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 10px; }
-        .album-card { width: 180px; border: 1px solid #ddd; border-radius: 5px; padding: 10px; background: #fafafa; }
-        .album-card img { width: 100%; height: 220px; object-fit: cover; border-radius: 3px; }
-        .album-card h3 { font-size: 13px; margin: 8px 0 4px 0; }
-        .album-card p { font-size: 11px; color: #666; }
+        .serie-content { display: flex; gap: 20px; margin-top: 15px; align-items: flex-start; }
+        .serie-img { width: 150px; height: 200px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; background: #fafafa; }
+        .serie-info { flex-grow: 1; }
+        .serie-resume { font-style: italic; color: #555; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -28,16 +26,18 @@
     <h1>Ma Collection de Bandes Dessinées</h1>
 
     <div class="search-container">
-        <input type="text" id="search-input" placeholder="Rechercher une série, un album...">
+        <input type="text" id="search-input" placeholder="Rechercher une série...">
         <button id="search-btn">Rechercher</button>
         <button id="reset-btn">Réinitialiser</button>
     </div>
 
     <div class="admin-container">
         <h3>Gestion des Séries</h3>
-        <input type="text" id="new-serie-input" placeholder="Nom de la nouvelle série">
-        <button id="add-serie-btn">Ajouter la série</button>
+        <input type="text" id="new-serie-input" placeholder="Nom de la série">
+        <input type="text" id="new-pochette-input" placeholder="URL de la pochette">
+        <input type="text" id="new-resume-input" placeholder="Résumé de la série">
         <br>
+        <button id="add-serie-btn">Ajouter la série</button>
         <button id="export-btn">Exporter collection.json</button>
     </div>
 
@@ -76,33 +76,24 @@
                 serieTitle.appendChild(editBtn);
                 serieDiv.appendChild(serieTitle);
 
-                if (serie.resumeSerie) {
-                    let resumeP = document.createElement('p');
-                    resumeP.className = 'serie-resume';
-                    resumeP.textContent = serie.resumeSerie;
-                    serieDiv.appendChild(resumeP);
-                }
+                let contentDiv = document.createElement('div');
+                contentDiv.className = 'serie-content';
 
-                let albumsGrid = document.createElement('div');
-                albumsGrid.className = 'albums-grid';
+                let img = document.createElement('img');
+                img.className = 'serie-img';
+                img.src = serie.pochette || '';
+                img.alt = serie.nomSerie;
+                contentDiv.appendChild(img);
 
-                if (serie.albums && serie.albums.length > 0) {
-                    serie.albums.forEach(album => {
-                        let albumCard = document.createElement('div');
-                        albumCard.className = 'album-card';
-                        
-                        albumCard.innerHTML = `
-                            <img src="${album.pochette}" alt="${album.titre}">
-                            <h3>${album.titre}</h3>
-                            <p>${album.resume}</p>
-                        `;
-                        albumsGrid.appendChild(albumCard);
-                    });
-                } else {
-                    albumsGrid.innerHTML = '<p style="color: #888; font-style: italic;">Aucun album pour cette série.</p>';
-                }
+                let infoDiv = document.createElement('div');
+                infoDiv.className = 'serie-info';
+                let resumeP = document.createElement('p');
+                resumeP.className = 'serie-resume';
+                resumeP.textContent = serie.resumeSerie || 'Aucun résumé.';
+                infoDiv.appendChild(resumeP);
 
-                serieDiv.appendChild(albumsGrid);
+                contentDiv.appendChild(infoDiv);
+                serieDiv.appendChild(contentDiv);
                 container.appendChild(serieDiv);
             });
         }
@@ -121,12 +112,16 @@
             const nouveauNom = prompt(`Modifier le nom de la série :`, serie.nomSerie);
             if (nouveauNom === null) return;
 
+            const nouvellePochette = prompt(`Modifier l'URL de la pochette :`, serie.pochette || '');
+            if (nouvellePochette === null) return;
+
             const nouveauResume = prompt(`Modifier le résumé de la série :`, serie.resumeSerie || '');
             if (nouveauResume === null) return;
 
             if (nouveauNom.trim() !== '') {
                 serie.nomSerie = nouveauNom.trim();
             }
+            serie.pochette = nouvellePochette.trim();
             serie.resumeSerie = nouveauResume.trim();
             displayCollection(globalData);
         }
@@ -153,17 +148,7 @@
 
             const filteredSeries = globalData.series.map(serie => {
                 const matchSerie = serie.nomSerie.toLowerCase().includes(query) || (serie.resumeSerie && serie.resumeSerie.toLowerCase().includes(query));
-                const filteredAlbums = serie.albums ? serie.albums.filter(album => 
-                    album.titre.toLowerCase().includes(query) || 
-                    album.resume.toLowerCase().includes(query)
-                ) : [];
-
-                if (matchSerie) {
-                    return serie;
-                } else if (filteredAlbums.length > 0) {
-                    return { ...serie, albums: filteredAlbums };
-                }
-                return null;
+                return matchSerie ? serie : null;
             }).filter(serie => serie !== null);
 
             displayCollection({ series: filteredSeries });
@@ -175,8 +160,13 @@
         });
 
         document.getElementById('add-serie-btn').addEventListener('click', () => {
-            const input = document.getElementById('new-serie-input');
-            const nomSerie = input.value.trim();
+            const inputNom = document.getElementById('new-serie-input');
+            const inputPochette = document.getElementById('new-pochette-input');
+            const inputResume = document.getElementById('new-resume-input');
+
+            const nomSerie = inputNom.value.trim();
+            const pochette = inputPochette.value.trim();
+            const resumeSerie = inputResume.value.trim();
 
             if (!nomSerie) {
                 alert("Veuillez entrer un nom de série.");
@@ -191,11 +181,13 @@
 
             globalData.series.push({
                 nomSerie: nomSerie,
-                resumeSerie: "",
-                albums: []
+                pochette: pochette,
+                resumeSerie: resumeSerie
             });
 
-            input.value = '';
+            inputNom.value = '';
+            inputPochette.value = '';
+            inputResume.value = '';
             displayCollection(globalData);
         });
 
